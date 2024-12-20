@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const baseSize = parseInt(element.dataset.gridSize) || 1;
                 const { size: scale } = calculateResponsiveScale();
                 // Calculate final size (3 is the original base particle size)
-                return 2 * baseSize * scale;
+                return 1 * baseSize * scale;
             }
             
             function calculateGridSize() {
