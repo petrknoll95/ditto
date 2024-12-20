@@ -11,8 +11,8 @@ const ParticleEffects = {
     
     // Initialize effects for an element
     initializeEffects: function(element, sketch) {
-        if (element.dataset.gridType) {
-            const effectTypes = element.dataset.gridType.split(' ');
+        if (element.dataset.gridEffect) {
+            const effectTypes = element.dataset.gridEffect.split(' ');
             effectTypes.forEach(type => {
                 const effectInitializer = effectRegistry.get(type);
                 if (effectInitializer) {
