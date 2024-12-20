@@ -1,0 +1,66 @@
+/* ----------------------------------------
+Grid Background
+---------------------------------------- */
+
+body {
+    font-family: "Inter", Roboto, Helvetica, Arial, sans-serif;
+    padding: 0;
+    margin: 0;
+}
+
+.section {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    justify-content: stretch;
+    align-items: stretch;
+}
+
+.grid {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2em;
+    padding: 2em;
+}
+
+.grid-background-container {
+    width: 100%;
+    height: 100%;
+    background-color: var(--theme--background);
+    color: var(--theme--text);
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Make the P5 canvas fill the container */
+.grid-background-container canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 0;
+}
+
+.labels {
+    position: absolute;
+    display: flex;
+    gap: .25em;
+    top: 1em;
+    left: 1em;
+    z-index: 1;
+}
+
+.labels span {
+    font-size: .65em;
+    font-weight: 500;
+    color: var(--theme--background);
+    background-color: var(--theme--text);
+    padding: .5em .75em;
+    border-radius: 999px;
+}

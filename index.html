@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="color.css">
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.2/lib/p5.min.js"></script>
+</head>
+
+<body>
+    <div class="section">
+        <div class="grid">
+            <div class="grid-background-container" data-theme="dark" data-grid-bg="true" data-density="2"
+                data-padding="24" data-grid-size="1">
+                <div class="labels">
+                    <span>Dark</span>
+                    <span>Density: 2</span>
+                    <span>Size: 1</span>
+                </div>
+            </div>
+            <div class="grid-background-container" data-theme="light" data-grid-bg="true" data-density="4"
+                data-padding="24" data-grid-size="1" data-grid-type="repulsion">
+                <div class="labels">
+                    <span>Light</span>
+                    <span>Density: 4</span>
+                    <span>Size: 1</span>
+                    <span>Repulsion</span>
+                </div>
+            </div>
+            <div class="grid-background-container" data-theme="dark" data-grid-bg="true" data-density="6"
+                data-padding="24" data-grid-size="1" data-grid-type="repulsion">
+                <div class="labels">
+                    <span>Dark</span>
+                    <span>Density: 6</span>
+                    <span>Size: 1</span>
+                    <span>Repulsion</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<script src="components/particles_core.js"></script>
+<script src="components/particles_repulsion.js"></script>
+
+
+</html>
