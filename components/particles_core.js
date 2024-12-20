@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             function calculateGridSize() {
-                const baseDensity = parseInt(element.dataset.density) || 2;
+                const baseDensity = parseInt(element.dataset.gridDensity) || 2;
                 const { density: scale } = calculateResponsiveScale();
                 // Make density differences more subtle by using a non-linear scale
                 const normalizedDensity = 1 + ((baseDensity - 1) * 0.3);
@@ -92,8 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const canvas = sketch.createCanvas(element.offsetWidth, element.offsetHeight);
                 canvas.parent(element);
                 
-                density = parseInt(element.dataset.density) || 2;
-                padding = parseInt(element.dataset.padding) || 0;
+                density = parseInt(element.dataset.gridDensity) || 2;
+                padding = parseInt(element.dataset.gridPadding) || 0;
                 
                 initializeParticles();
                 
