@@ -8,36 +8,32 @@ ParticleEffects.register('ripple', (element, sketch) => {
         // Wave properties
         amplitude: 15,        // Maximum particle displacement
         thickness: 0.15,      // Thickness of the wave (0-1)
+        maxRadius: 1.5,      // Maximum radius multiplier (relative to canvas size)
         
         // Animation curves
         easing: {
-            // How the wave moves outward over time (0 to 1)
             expansion: t => {
-                // Smooth ease-out
                 return 1 - Math.pow(1 - t, 2);
             },
-            // How the displacement strength changes over time (0 to 1)
             strength: t => {
-                // Fade in and out smoothly
                 return Math.sin(t * Math.PI);
             }
         }
     };
 
     let ripples = [];     // Array to store active ripples
-    let canTrigger = true;  // Flag to prevent multiple ripples
     
     class Ripple {
-        constructor() {
-            this.x = sketch.width / 2;
-            this.y = sketch.height / 2;
+        constructor(x, y) {
+            // Use provided coordinates or fall back to center
+            this.x = x || sketch.width / 2;
+            this.y = y || sketch.height / 2;
             this.startTime = sketch.millis() / 1000;
             this.progress = 0;
         }
 
         update() {
             this.progress = (sketch.millis() / 1000 - this.startTime) / config.duration;
-            if (this.progress > 0.8) canTrigger = true;
             return this.progress <= 1;
         }
 
@@ -48,23 +44,17 @@ ParticleEffects.register('ripple', (element, sketch) => {
             if (distance === 0) return { x: 0, y: 0 };
 
             // Calculate the current radius of the wave
-            const maxRadius = Math.max(sketch.width, sketch.height) * 0.75;
+            const maxRadius = Math.max(sketch.width, sketch.height) * config.maxRadius;
             const currentRadius = maxRadius * config.easing.expansion(this.progress);
             
-            // Calculate how far this particle is from the wave ring
             const distanceFromWave = Math.abs(distance - currentRadius) / maxRadius;
             
-            // Only affect particles near the wave ring
             if (distanceFromWave > config.thickness) return { x: 0, y: 0 };
             
-            // Calculate wave strength based on distance from wave ring
             const waveStrength = 1 - (distanceFromWave / config.thickness);
-            
-            // Calculate final displacement
             const strength = config.easing.strength(this.progress);
             const magnitude = waveStrength * strength * config.amplitude;
             
-            // Push outward from center
             return {
                 x: (dx / distance) * magnitude,
                 y: (dy / distance) * magnitude
@@ -72,11 +62,22 @@ ParticleEffects.register('ripple', (element, sketch) => {
         }
     }
 
-    function createRipple() {
-        if (canTrigger) {
-            ripples.push(new Ripple());
-            canTrigger = false;
+    function createRipple(x, y) {
+        ripples.push(new Ripple(x, y));
+    }
+
+    function getEventPosition(e) {
+        const rect = element.getBoundingClientRect();
+        if (e.touches) {
+            return {
+                x: sketch.map(e.touches[0].clientX - rect.left, 0, rect.width, 0, sketch.width),
+                y: sketch.map(e.touches[0].clientY - rect.top, 0, rect.height, 0, sketch.height)
+            };
         }
+        return {
+            x: sketch.map(e.clientX - rect.left, 0, rect.width, 0, sketch.width),
+            y: sketch.map(e.clientY - rect.top, 0, rect.height, 0, sketch.height)
+        };
     }
 
     function initializeParticles() {
@@ -90,12 +91,11 @@ ParticleEffects.register('ripple', (element, sketch) => {
 
     function updateParticles(particles) {
         if (!particles || ripples.length === 0) {
-            return null; // Return null if no displacement
+            return null;
         }
 
         ripples = ripples.filter(ripple => ripple.update());
 
-        // Return displacement for each particle
         return particles.map(p => {
             let totalDx = 0;
             let totalDy = 0;
@@ -110,20 +110,29 @@ ParticleEffects.register('ripple', (element, sketch) => {
         });
     }
 
-    // Initialize effect as before...
     initializeParticles();
     element.addEventListener('particlesReinitialized', initializeParticles);
 
-    // Handle both mouse and touch events
-    element.addEventListener('mouseenter', createRipple);
+    // Handle mouse events
+    element.addEventListener('mouseenter', (e) => {
+        const pos = getEventPosition(e);
+        createRipple(pos.x, pos.y);
+    });
+
+    element.addEventListener('click', (e) => {
+        const pos = getEventPosition(e);
+        createRipple(pos.x, pos.y);
+    });
+
+    // Handle touch events
     element.addEventListener('touchstart', (e) => {
         if (element === sketch.gridElement) {
             e.preventDefault();
-            createRipple();
+            const pos = getEventPosition(e);
+            createRipple(pos.x, pos.y);
         }
     }, { passive: false });
 
-    // Return the update function
     return {
         updateParticles
     };
