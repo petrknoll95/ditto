@@ -1,0 +1,46 @@
+[class*="u-clip"] {
+    --clip-size: 1em;
+    --clip-size-large: 2em;
+    transition: clip-path 0.2s ease-in-out;
+}
+
+[class*="u-clip"]:hover {
+    --clip-size: 1.5em;
+    --clip-size-large: 2.5em;
+    transition: clip-path 0.2s ease-in-out;
+}
+
+[class*="u-clip"].flip {
+    --clip-size: 2em;
+    --clip-size-large: 1em;
+}
+
+[class*="u-clip"].flip:hover {
+    --clip-size: 2.5em;
+    --clip-size-large: 1.5em;
+    transition: clip-path 0.2s ease-in-out;
+}
+
+.u-clip-tl {
+    clip-path: polygon(var(--clip-size) var(--clip-size), var(--clip-size) 0, 100% 0, 100% 100%, 0 100%, 0 var(--clip-size));
+}
+
+.u-clip-tr {
+    clip-path: polygon(calc(100% - var(--clip-size)) 0, calc(100% - var(--clip-size)) var(--clip-size), 100% var(--clip-size), 100% 100%, 0 100%, 0 0);
+}
+
+.u-clip-br {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--clip-size)), calc(100% - var(--clip-size)) calc(100% - var(--clip-size)), calc(100% - var(--clip-size)) 100%, 0 100%);
+}
+
+.u-clip-bl {
+    clip-path: polygon(100% 0, 100% 100%, var(--clip-size) 100%, var(--clip-size) calc(100% - var(--clip-size)), 0 calc(100% - var(--clip-size)), 0 0);
+}
+
+.u-clip-tr-bl {
+    clip-path: polygon(0 0, calc(100% - var(--clip-size-large)) 0, calc(100% - var(--clip-size-large)) var(--clip-size-large), 100% var(--clip-size-large), 100% 100%, var(--clip-size) 100%, var(--clip-size) calc(100% - var(--clip-size)), 0 calc(100% - var(--clip-size)));
+}
+
+.u-clip-tl-br {
+    clip-path: polygon(var(--clip-size) var(--clip-size), var(--clip-size) 0, 100% 0, 100% calc(100% - var(--clip-size-large)), calc(100% - var(--clip-size-large)) calc(100% - var(--clip-size-large)), calc(100% - var(--clip-size-large)) 100%, 0 100%, 0 var(--clip-size));
+}
