@@ -1,13 +1,22 @@
 // Register the repulsion effect
 ParticleEffects.register('repulsion', (element, sketch) => {
     // Configuration
+    const defaultConfig = {
+        radius: 150,
+        strength: 2,
+        maxForce: 2,
+        friction: 0.85,
+        returnSpeed: 0.15,
+        smoothing: 0.6
+    };
+
     const config = {
-        radius: 150,          // Radius of influence
-        strength: 2,          // Base repulsion strength
-        maxForce: 2,         // Maximum force applied
-        friction: 0.85,      // Friction to slow down movement (0-1)
-        returnSpeed: 0.15,    // How quickly particles return to position
-        smoothing: 0.6       // Smoothing factor for movement (0-1)
+        radius: element.dataset.repulsionRadius ? parseFloat(element.dataset.repulsionRadius) : defaultConfig.radius,
+        strength: element.dataset.repulsionStrength ? parseFloat(element.dataset.repulsionStrength) : defaultConfig.strength,
+        maxForce: element.dataset.repulsionMaxForce ? parseFloat(element.dataset.repulsionMaxForce) : defaultConfig.maxForce,
+        friction: element.dataset.repulsionFriction ? parseFloat(element.dataset.repulsionFriction) : defaultConfig.friction,
+        returnSpeed: element.dataset.repulsionReturnSpeed ? parseFloat(element.dataset.repulsionReturnSpeed) : defaultConfig.returnSpeed,
+        smoothing: element.dataset.repulsionSmoothing ? parseFloat(element.dataset.repulsionSmoothing) : defaultConfig.smoothing
     };
 
     let particles = [];

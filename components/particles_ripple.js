@@ -1,14 +1,14 @@
 // Register the ripple effect
 ParticleEffects.register('ripple', (element, sketch) => {
-    // Configuration
-    const config = {
+    // Default configuration
+    const defaultConfig = {
         // Animation timing
         duration: 1.2,        // Total animation duration in seconds
         
         // Wave properties
         amplitude: 15,        // Maximum particle displacement
         thickness: 0.15,      // Thickness of the wave (0-1)
-        maxRadius: 1.5,      // Maximum radius multiplier (relative to canvas size)
+        maxRadius: 1.5,       // Maximum radius multiplier (relative to canvas size)
         
         // Animation curves
         easing: {
@@ -19,6 +19,15 @@ ParticleEffects.register('ripple', (element, sketch) => {
                 return Math.sin(t * Math.PI);
             }
         }
+    };
+
+    // Read configuration from data attributes with fallbacks to defaults
+    const config = {
+        duration: element.dataset.rippleDuration ? parseFloat(element.dataset.rippleDuration) : defaultConfig.duration,
+        amplitude: element.dataset.rippleAmplitude ? parseFloat(element.dataset.rippleAmplitude) : defaultConfig.amplitude,
+        thickness: element.dataset.rippleThickness ? parseFloat(element.dataset.rippleThickness) : defaultConfig.thickness,
+        maxRadius: element.dataset.rippleMaxRadius ? parseFloat(element.dataset.rippleMaxRadius) : defaultConfig.maxRadius,
+        easing: defaultConfig.easing // Keep the easing functions as they are
     };
 
     let ripples = [];     // Array to store active ripples
