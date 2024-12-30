@@ -2,42 +2,37 @@
 ParticleEffects.register('ripple', (element, sketch) => {
     // Default configuration
     const defaultConfig = {
-        // Animation timing
-        duration: 1.2,        // Total animation duration in seconds
-        
-        // Wave properties
-        amplitude: 15,        // Maximum particle displacement
-        thickness: 0.15,      // Thickness of the wave (0-1)
-        maxRadius: 1.5,       // Maximum radius multiplier (relative to canvas size)
-        
-        // Animation curves
+        duration: 1.2,
+        amplitude: 15,
+        thickness: 0.15,
+        maxRadius: 1.5,
         easing: {
-            expansion: t => {
-                return 1 - Math.pow(1 - t, 2);
-            },
-            strength: t => {
-                return Math.sin(t * Math.PI);
-            }
+            expansion: t => 1 - Math.pow(1 - t, 2),
+            strength: t => Math.sin(t * Math.PI)
         }
     };
 
-    // Read configuration from data attributes with fallbacks to defaults
+    // Read configuration from data attributes
     const config = {
         duration: element.dataset.rippleDuration ? parseFloat(element.dataset.rippleDuration) : defaultConfig.duration,
         amplitude: element.dataset.rippleAmplitude ? parseFloat(element.dataset.rippleAmplitude) : defaultConfig.amplitude,
         thickness: element.dataset.rippleThickness ? parseFloat(element.dataset.rippleThickness) : defaultConfig.thickness,
         maxRadius: element.dataset.rippleMaxRadius ? parseFloat(element.dataset.rippleMaxRadius) : defaultConfig.maxRadius,
-        easing: defaultConfig.easing // Keep the easing functions as they are
+        easing: defaultConfig.easing
     };
+
+    // Parse affect settings
+    const affects = (element.dataset.rippleAffect || '').split(' ').filter(Boolean);
+    const shouldAffectOpacity = affects.includes('opacity');
+    const shouldAffectSize = affects.includes('size');
 
     // Get base opacity from grid settings
     const baseOpacity = parseFloat(element.dataset.gridOpacity) || 1;
 
-    let ripples = [];     // Array to store active ripples
+    let ripples = [];
     
     class Ripple {
         constructor(x, y) {
-            // Use provided coordinates or fall back to center
             this.x = x || sketch.width / 2;
             this.y = y || sketch.height / 2;
             this.startTime = sketch.millis() / 1000;
@@ -53,7 +48,7 @@ ParticleEffects.register('ripple', (element, sketch) => {
             const dx = px - this.x;
             const dy = py - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance === 0) return { x: 0, y: 0, opacity: 0 };
+            if (distance === 0) return { x: 0, y: 0, opacity: baseOpacity, size: 1 };
 
             // Calculate the current radius of the wave
             const maxRadius = Math.max(sketch.width, sketch.height) * config.maxRadius;
@@ -61,19 +56,28 @@ ParticleEffects.register('ripple', (element, sketch) => {
             
             const distanceFromWave = Math.abs(distance - currentRadius) / maxRadius;
             
-            if (distanceFromWave > config.thickness) return { x: 0, y: 0, opacity: 0 };
+            if (distanceFromWave > config.thickness) {
+                return { x: 0, y: 0, opacity: baseOpacity, size: 1 };
+            }
             
             const waveStrength = 1 - (distanceFromWave / config.thickness);
             const strength = config.easing.strength(this.progress);
             const magnitude = waveStrength * strength * config.amplitude;
             
-            // Calculate opacity boost - make it more pronounced
-            const opacityBoost = Math.min(1, baseOpacity + (waveStrength * strength));
+            // Calculate effect values based on wave strength
+            const opacityBoost = shouldAffectOpacity 
+                ? Math.min(1, baseOpacity + (waveStrength * strength * (1 - baseOpacity)))
+                : baseOpacity;
+            
+            const sizeBoost = shouldAffectSize
+                ? 1 + (waveStrength * strength * 1.5) // More noticeable size increase
+                : 1;
             
             return {
                 x: (dx / distance) * magnitude,
                 y: (dy / distance) * magnitude,
-                opacity: opacityBoost
+                opacity: opacityBoost,
+                size: sizeBoost
             };
         }
     }
@@ -115,20 +119,22 @@ ParticleEffects.register('ripple', (element, sketch) => {
         return particles.map(p => {
             let totalDx = 0;
             let totalDy = 0;
-            let maxOpacityBoost = 0;
+            let maxOpacityBoost = baseOpacity;
+            let maxSizeBoost = 1;
 
             ripples.forEach(ripple => {
                 const displacement = ripple.getDisplacement(p.origX, p.origY);
                 totalDx += displacement.x;
                 totalDy += displacement.y;
-                // Take the maximum opacity boost from all active ripples
                 maxOpacityBoost = Math.max(maxOpacityBoost, displacement.opacity);
+                maxSizeBoost = Math.max(maxSizeBoost, displacement.size);
             });
 
             return { 
                 dx: totalDx, 
                 dy: totalDy,
-                opacity: baseOpacity + maxOpacityBoost
+                opacity: maxOpacityBoost,
+                size: maxSizeBoost
             };
         });
     }

@@ -109,11 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dotColor = computedStyle.getPropertyValue('--theme--dot-color').trim();
                 
                 if (particles && particles.length > 0) {
-                    // Reset particles to original positions and opacity
+                    // Reset particles to original positions and properties
                     particles.forEach(particle => {
                         particle.x = particle.origX;
                         particle.y = particle.origY;
                         particle.opacity = undefined; // Reset opacity
+                        particle.size = undefined;    // Reset size
                     });
 
                     // Only apply effects if there are active effects
@@ -128,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             let totalDx = 0;
                             let totalDy = 0;
                             let maxOpacity = parseFloat(element.dataset.gridOpacity) || 1;
+                            let maxSize = 1;
 
                             displacements.forEach(effectDisplacements => {
                                 if (effectDisplacements[i]) {
@@ -137,12 +139,17 @@ document.addEventListener('DOMContentLoaded', () => {
                                     if (effectDisplacements[i].opacity !== undefined) {
                                         maxOpacity = Math.max(maxOpacity, effectDisplacements[i].opacity);
                                     }
+                                    // Use the highest size value from all effects
+                                    if (effectDisplacements[i].size !== undefined) {
+                                        maxSize = Math.max(maxSize, effectDisplacements[i].size);
+                                    }
                                 }
                             });
 
                             particle.x += totalDx;
                             particle.y += totalDy;
                             particle.opacity = maxOpacity;
+                            particle.size = maxSize;
                         });
                     }
 
@@ -188,21 +195,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Parse the color to get its components
                 const col = sketch.color(color);
-                const particleSize = calculateParticleSize();
+                const baseParticleSize = calculateParticleSize();
                 
                 particles.forEach(particle => {
-                    // Get the current opacity for this particle
+                    // Get the current opacity and size for this particle
                     const baseOpacity = parseFloat(element.dataset.gridOpacity) || 1;
                     const currentOpacity = particle.opacity !== undefined ? particle.opacity : baseOpacity;
+                    const currentSize = particle.size !== undefined ? baseParticleSize * particle.size : baseParticleSize;
                     
                     // Set the color with the current opacity
                     sketch.fill(sketch.red(col), sketch.green(col), sketch.blue(col), 255 * currentOpacity);
                     
                     sketch.beginShape();
-                    sketch.vertex(particle.x, particle.y - particleSize);
-                    sketch.vertex(particle.x + particleSize, particle.y);
-                    sketch.vertex(particle.x, particle.y + particleSize);
-                    sketch.vertex(particle.x - particleSize, particle.y);
+                    sketch.vertex(particle.x, particle.y - currentSize);
+                    sketch.vertex(particle.x + currentSize, particle.y);
+                    sketch.vertex(particle.x, particle.y + currentSize);
+                    sketch.vertex(particle.x - currentSize, particle.y);
                     sketch.endShape(sketch.CLOSE);
                 });
             }
