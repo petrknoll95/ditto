@@ -109,10 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dotColor = computedStyle.getPropertyValue('--theme--dot-color').trim();
                 
                 if (particles && particles.length > 0) {
-                    // Reset particles to original positions
+                    // Reset particles to original positions and opacity
                     particles.forEach(particle => {
                         particle.x = particle.origX;
                         particle.y = particle.origY;
+                        particle.opacity = undefined; // Reset opacity
                     });
 
                     // Only apply effects if there are active effects
@@ -126,16 +127,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         particles.forEach((particle, i) => {
                             let totalDx = 0;
                             let totalDy = 0;
+                            let maxOpacity = parseFloat(element.dataset.gridOpacity) || 1;
 
                             displacements.forEach(effectDisplacements => {
                                 if (effectDisplacements[i]) {
                                     totalDx += effectDisplacements[i].dx;
                                     totalDy += effectDisplacements[i].dy;
+                                    // Use the highest opacity value from all effects
+                                    if (effectDisplacements[i].opacity !== undefined) {
+                                        maxOpacity = Math.max(maxOpacity, effectDisplacements[i].opacity);
+                                    }
                                 }
                             });
 
                             particle.x += totalDx;
                             particle.y += totalDy;
+                            particle.opacity = maxOpacity;
                         });
                     }
 
@@ -179,17 +186,18 @@ document.addEventListener('DOMContentLoaded', () => {
             function drawParticles(color) {
                 sketch.noStroke();
                 
-                // Get opacity from data attribute or default to 1
-                const opacity = parseFloat(element.dataset.gridOpacity) || 1;
-                
                 // Parse the color to get its components
                 const col = sketch.color(color);
-                // Set the color with opacity
-                sketch.fill(sketch.red(col), sketch.green(col), sketch.blue(col), 255 * opacity);
-                
                 const particleSize = calculateParticleSize();
                 
                 particles.forEach(particle => {
+                    // Get the current opacity for this particle
+                    const baseOpacity = parseFloat(element.dataset.gridOpacity) || 1;
+                    const currentOpacity = particle.opacity !== undefined ? particle.opacity : baseOpacity;
+                    
+                    // Set the color with the current opacity
+                    sketch.fill(sketch.red(col), sketch.green(col), sketch.blue(col), 255 * currentOpacity);
+                    
                     sketch.beginShape();
                     sketch.vertex(particle.x, particle.y - particleSize);
                     sketch.vertex(particle.x + particleSize, particle.y);

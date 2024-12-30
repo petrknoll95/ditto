@@ -30,6 +30,9 @@ ParticleEffects.register('ripple', (element, sketch) => {
         easing: defaultConfig.easing // Keep the easing functions as they are
     };
 
+    // Get base opacity from grid settings
+    const baseOpacity = parseFloat(element.dataset.gridOpacity) || 1;
+
     let ripples = [];     // Array to store active ripples
     
     class Ripple {
@@ -50,7 +53,7 @@ ParticleEffects.register('ripple', (element, sketch) => {
             const dx = px - this.x;
             const dy = py - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance === 0) return { x: 0, y: 0 };
+            if (distance === 0) return { x: 0, y: 0, opacity: 0 };
 
             // Calculate the current radius of the wave
             const maxRadius = Math.max(sketch.width, sketch.height) * config.maxRadius;
@@ -58,15 +61,19 @@ ParticleEffects.register('ripple', (element, sketch) => {
             
             const distanceFromWave = Math.abs(distance - currentRadius) / maxRadius;
             
-            if (distanceFromWave > config.thickness) return { x: 0, y: 0 };
+            if (distanceFromWave > config.thickness) return { x: 0, y: 0, opacity: 0 };
             
             const waveStrength = 1 - (distanceFromWave / config.thickness);
             const strength = config.easing.strength(this.progress);
             const magnitude = waveStrength * strength * config.amplitude;
             
+            // Calculate opacity boost - make it more pronounced
+            const opacityBoost = Math.min(1, baseOpacity + (waveStrength * strength));
+            
             return {
                 x: (dx / distance) * magnitude,
-                y: (dy / distance) * magnitude
+                y: (dy / distance) * magnitude,
+                opacity: opacityBoost
             };
         }
     }
@@ -108,14 +115,21 @@ ParticleEffects.register('ripple', (element, sketch) => {
         return particles.map(p => {
             let totalDx = 0;
             let totalDy = 0;
+            let maxOpacityBoost = 0;
 
             ripples.forEach(ripple => {
                 const displacement = ripple.getDisplacement(p.origX, p.origY);
                 totalDx += displacement.x;
                 totalDy += displacement.y;
+                // Take the maximum opacity boost from all active ripples
+                maxOpacityBoost = Math.max(maxOpacityBoost, displacement.opacity);
             });
 
-            return { dx: totalDx, dy: totalDy };
+            return { 
+                dx: totalDx, 
+                dy: totalDy,
+                opacity: baseOpacity + maxOpacityBoost
+            };
         });
     }
 
