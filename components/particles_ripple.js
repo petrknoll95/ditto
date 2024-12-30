@@ -70,7 +70,7 @@ ParticleEffects.register('ripple', (element, sketch) => {
                 : baseOpacity;
             
             const sizeBoost = shouldAffectSize
-                ? 1 + (waveStrength * strength * 1.5) // More noticeable size increase
+                ? 1 + (waveStrength * strength) // More noticeable size increase
                 : 1;
             
             return {
