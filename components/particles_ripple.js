@@ -122,12 +122,7 @@ ParticleEffects.register('ripple', (element, sketch) => {
     initializeParticles();
     element.addEventListener('particlesReinitialized', initializeParticles);
 
-    // Handle mouse events
-    element.addEventListener('mouseenter', (e) => {
-        const pos = getEventPosition(e);
-        createRipple(pos.x, pos.y);
-    });
-
+    // Handle mouse click event
     element.addEventListener('click', (e) => {
         const pos = getEventPosition(e);
         createRipple(pos.x, pos.y);
