@@ -45,6 +45,7 @@ pageFunctions.addFunction('pixelate', () => {
 
         // Create wrapper for blocks that will be clipped to image bounds
         const wrapper = document.createElement('div');
+        wrapper.className = 'pixelate-wrapper';
         wrapper.style.position = 'absolute';
         wrapper.style.top = '0';
         wrapper.style.left = '0';
@@ -77,8 +78,15 @@ pageFunctions.addFunction('pixelate', () => {
             }
         }
 
+        // Remove any existing wrapper
+        const existingWrapper = container.querySelector('.pixelate-wrapper');
+        if (existingWrapper) {
+            existingWrapper.remove();
+        }
+
         fragment.appendChild(wrapper);
         container.appendChild(fragment);
+        blocks.wrapper = wrapper;
         return blocks;
     }
 
@@ -108,8 +116,10 @@ pageFunctions.addFunction('pixelate', () => {
         const tl = gsap.timeline({
             onComplete: () => {
                 if (direction === 'in') {
-                    // Clean up the blocks after fade in
-                    blocks.forEach(block => block.remove());
+                    // Clean up the blocks and wrapper after fade in
+                    if (blocks.wrapper) {
+                        blocks.wrapper.remove();
+                    }
                     delete container._pixelateBlocks;
                 } else {
                     // Store blocks reference for fade in
