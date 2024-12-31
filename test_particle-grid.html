@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/color.css">
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.2/lib/p5.min.js"></script>
+</head>
+
+<body>
+    <div class="section">
+        <div class="grid">
+            <div class="grid-background-container" data-theme="dark" data-grid-bg="true" data-grid-density="1"
+                data-grid-padding="24" data-grid-size="1">
+                <div class="labels">
+                    <span>Dark</span>
+                    <span>Density: 2</span>
+                    <span>Size: 1</span>
+                </div>
+            </div>
+            <div class="grid-background-container" data-theme="light" data-grid-bg="true" data-grid-density="1.5"
+                data-grid-padding="24" data-grid-size="1.5" data-grid-effect="repulsion" data-grid-opacity="0.5" 
+                data-repulsion-radius="250" data-repulsion-strength="3" data-repulsion-max-force="4" 
+                data-repulsion-friction="0.85" data-repulsion-return-speed="0.15" data-repulsion-smoothing="0.6">
+                <div class="labels">
+                    <span>Light</span>
+                    <span>Density: 4</span>
+                    <span>Size: 1</span>
+                    <span>Repulsion</span>
+                    <span>Opacity: 0.5</span>
+                </div>
+            </div>
+            <div class="grid-background-container" data-theme="dark" data-grid-bg="true" data-grid-density="2"
+                data-grid-padding="24" data-grid-size="2" data-grid-effect="ripple">
+                <div class="labels">
+                    <span>Dark</span>
+                    <span>Density: 1</span>
+                    <span>Size: 1</span>
+                    <span>Ripple</span>
+                </div>
+            </div>
+            <div class="grid-background-container" data-theme="dark" data-grid-bg="true" data-grid-density="2.5"
+                data-grid-padding="24" data-grid-size="2.5" data-grid-effect="repulsion">
+                <div class="labels">
+                    <span>Dark</span>
+                    <span>Density: 4</span>
+                    <span>Size: 1</span>
+                    <span>Repulsion</span>
+                </div>
+            </div>
+            <div class="grid-background-container" data-theme="dark" data-grid-bg="true" data-grid-density="2"
+                data-grid-padding="24" data-grid-size="1" data-grid-effect="ripple"
+                data-ripple-duration="1.5" data-ripple-amplitude="25" data-ripple-thickness="0.25" 
+                data-ripple-max-radius="1.5" data-grid-opacity="0.5" data-ripple-affect="opacity size">
+                <div class="labels">
+                    <span>Dark</span>
+                    <span>Density: 2</span>
+                    <span>Size: 1</span>
+                    <span>Ripple</span>
+                    <span>Duration: 1.5</span>
+                    <span>Amplitude: 25</span>
+                    <span>Thickness: 0.25</span>
+                    <span>Max Radius: 1.5</span>
+                    <span>Opacity: 0.25</span>
+                </div>
+            </div>
+            <div class="grid-background-container" data-theme="dark" data-grid-bg="true" data-grid-density="6"
+                data-grid-padding="24" data-grid-size="1" data-grid-effect="repulsion">
+                <div class="labels">
+                    <span>Dark</span>
+                    <span>Density: 6</span>
+                    <span>Size: 1</span>
+                    <span>Repulsion</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<script src="components/particles_core.js"></script>
+<script src="components/particles_repulsion.js"></script>
+<script src="components/particles_ripple.js"></script>
+
+
+</html>

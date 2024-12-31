@@ -1,0 +1,228 @@
+/* ----------------------------------------
+Button Definitions
+ ---------------------------------------- */
+
+:root {
+    --button--transition: 200ms;
+    --button--ease: ease;
+    --button--height-inner: 2.5em;
+    --button--padding: 0.25em;
+    --button--height-total: calc(var(--button--height-inner) + (var(--button--padding) * 2));
+
+    --button--background: var(--core--900);
+    --button--background-hover: var(--core--700);
+    --button--text: var(--core--000);
+    --button--text-hover: var(--core--000);
+    --button--border: var(--transparent--dark-010);
+    --button--border-hover: var(--transparent--dark-000);
+    --button--icon-fill: var(--core--000);
+    --button--icon-fill-hover: var(--core--000);
+    --button--icon-bg: var(--transparent--dark-010);
+    --button--icon-bg-hover: var(--transparent--dark-020);
+}
+
+/* ----------------------------------------
+Button Colors
+---------------------------------------- */
+
+/* Button Primary */
+[data-button-style="primary"] {
+    --button--background: var(--core--accent);
+    --button--background-hover: var(--core--accent);
+    --button--text: var(--core--000);
+    --button--text-hover: var(--core--000);
+    --button--border: var(--swatch--transparent);
+    --button--border-hover: var(--swatch--transparent);
+    --button--icon-fill: var(--core--000);
+    --button--icon-fill-hover: var(--core--800);
+    --button--icon-bg: var(--transparent--dark-010);
+    --button--icon-bg-hover: var(--core--000);
+}
+
+/* Button Secondary */
+/* Light Theme */
+[data-button-style="secondary"],
+[data-theme="light"] [data-button-style="secondary"],
+[data-theme="dark"] [data-button-style="secondary"][data-variant="invert"],
+[data-theme="light"] [data-theme="invert"] [data-button-style="secondary"][data-variant="invert"],
+[data-theme="dark"] [data-theme="invert"] [data-button-style="secondary"] {
+    --button--background: var(--core--900);
+    --button--background-hover: var(--core--700);
+    --button--text: var(--core--000);
+    --button--text-hover: var(--core--000);
+    --button--border: var(--transparent--dark-010);
+    --button--border-hover: var(--transparent--dark-000);
+    --button--icon-fill: var(--core--000);
+    --button--icon-fill-hover: var(--core--000);
+    --button--icon-bg: var(--transparent--dark-010);
+    --button--icon-bg-hover: var(--transparent--dark-020);
+}
+
+/* Button Secondary */
+/* Dark Theme */
+[data-button-style="secondary"][data-variant="invert"],
+[data-theme="dark"] [data-button-style="secondary"],
+[data-theme="dark"] [data-theme="invert"] [data-button-style="secondary"][data-variant="invert"],
+[data-theme="light"] [data-theme="invert"] [data-button-style="secondary"],
+[data-theme="light"] [data-button-style="secondary"][data-variant="invert"] {
+    --button--background: var(--core--000);
+    --button--background-hover: var(--core--200);
+    --button--text: var(--core--800);
+    --button--text-hover: var(--core--800);
+    --button--border: var(--transparent--light-010);
+    --button--border-hover: var(--transparent--light-000);
+    --button--icon-fill: var(--core--800);
+    --button--icon-fill-hover: var(--core--800);
+    --button--icon-bg: var(--transparent--light-010);
+    --button--icon-bg-hover: var(--transparent--light-020);
+}
+
+/* Button Tertiary */
+/* Light Theme */
+[data-button-style="tertiary"],
+[data-theme="light"] [data-button-style="tertiary"],
+[data-theme="dark"] [data-theme="invert"] [data-button-style="tertiary"] {
+    --button--background: color-mix(in srgb, var(--transparent--dark-010), var(--theme--background));
+    --button--background-hover: color-mix(in srgb, var(--transparent--dark-020), var(--theme--background));
+    --button--text: var(--core--000);
+    --button--text-hover: var(--core--000);
+    --button--border: var(--transparent--dark-000);
+    --button--border-hover: var(--transparent--dark-000);
+    --button--icon-fill: var(--core--000);
+    --button--icon-fill-hover: var(--core--000);
+    --button--icon-bg: var(--transparent--dark-010);
+    --button--icon-bg-hover: var(--transparent--dark-020);
+}
+
+/* Button Tertiary */
+/* Dark Theme */
+[data-theme="dark"] [data-button-style="tertiary"],
+[data-theme="light"] [data-theme="invert"] [data-button-style="tertiary"] {
+    --button--background: color-mix(in srgb, var(--transparent--light-010), var(--theme--background));
+    --button--background-hover: color-mix(in srgb, var(--transparent--light-020), var(--theme--background));
+    --button--text: var(--core--800);
+    --button--text-hover: var(--core--800);
+    --button--border: var(--transparent--light-000);
+    --button--border-hover: var(--transparent--light-000);
+    --button--icon-fill: var(--core--800);
+    --button--icon-fill-hover: var(--core--800);
+    --button--icon-bg: var(--transparent--light-010);
+    --button--icon-bg-hover: var(--transparent--light-020);
+}
+
+.btn_wrap_main,
+.btn_wrap_icon {
+    color: var(--button--text);
+    background-color: var(--button--background);
+    border: 1px solid var(--button--border);
+    transition: all var(--button--transition) var(--button--ease);
+}
+
+.btn_wrap_main:hover,
+.btn_wrap_icon:hover,
+.btn_wrap_main:focus,
+.btn_wrap_icon:focus,
+.btn_wrap_main:focus-visible,
+.btn_wrap_icon:focus-visible {
+    border: 1px solid var(--button--border-hover);
+    background-color: var(--button--background-hover);
+    color: var(--button--text-hover);
+}
+
+.btn_wrap_main::after,
+.btn_wrap_icon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background-color: inherit;
+    z-index: 0;
+    box-shadow: 0 0 0 0 var(--button--background);
+    transition: box-shadow var(--button--transition) var(--button--ease);
+}
+
+.btn_wrap_main:hover::after,
+.btn_wrap_icon:hover::after,
+.btn_wrap_main:focus::after,
+.btn_wrap_icon:focus::after,
+.btn_wrap_main:focus-visible::after,
+.btn_wrap_icon:focus-visible::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background-color: inherit;
+    z-index: 0;
+    box-shadow: 0 0 0 0.125em var(--button--background-hover);
+}
+
+.btn_wrap_main:hover .btn_wrap_icon:hover,
+.btn_wrap_main:focus .btn_wrap_icon:focus,
+.btn_wrap_main:focus-visible,
+.btn_wrap_icon:focus-visible {
+    border: 1px solid var(--button--border-hover);
+}
+
+.btn_wrap_main:hover>.btn_inner_main_icon:first-child,
+.btn_wrap_main:focus>.btn_inner_main_icon:first-child,
+.btn_wrap_main:focus-visible>.btn_inner_main_icon:first-child {
+    grid-column-start: 2;
+}
+
+/* Icon Wrapper */
+.btn_inner_main_icon {
+    position: relative;
+    z-index: 1;
+    transition: background-color var(--button--transition) var(--button--ease);
+    overflow: clip;
+}
+
+svg.btn_main_icon path {
+    transition: fill var(--button--transition) var(--button--ease);
+}
+
+.btn_wrap_main:hover>.btn_inner_main_icon,
+.btn_wrap_main:focus>.btn_inner_main_icon,
+.btn_wrap_main:focus-visible>.btn_inner_main_icon {
+    background-color: var(--button--icon-bg-hover);
+}
+
+/* Icon */
+.btn_wrap_main:hover svg.btn_main_icon path,
+.btn_wrap_main:focus svg.btn_main_icon path,
+.btn_wrap_main:focus-visible svg.btn_main_icon path {
+    fill: var(--button--icon-fill-hover)
+}
+
+
+.btn_inner_main_icon svg.btn_main_icon:first-child {
+    transform: translateX(-200%);
+    visibility: hidden;
+    transition: all 400ms cubic-bezier(.43, 0, .21, 1);
+}
+
+.btn_inner_main_icon svg.btn_main_icon:last-child {
+    transform: translateX(0%);
+    visibility: visible;
+    transition: all 400ms cubic-bezier(.43, 0, .21, 1);
+}
+
+.btn_wrap_main:hover svg.btn_main_icon:first-child,
+.btn_wrap_main:focus svg.btn_main_icon:first-child,
+.btn_wrap_main:focus-visible svg.btn_main_icon:first-child {
+    transform: translateX(0%);
+    visibility: visible;
+}
+
+.btn_wrap_main:hover svg.btn_main_icon:last-child,
+.btn_wrap_main:focus svg.btn_main_icon:last-child,
+.btn_wrap_main:focus-visible svg.btn_main_icon:last-child {
+    transform: translateX(400%);
+    visibility: hidden;
+}

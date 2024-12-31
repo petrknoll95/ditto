@@ -1,3 +1,7 @@
+/* ----------------------------------------
+Clipping
+---------------------------------------- */
+
 [class*="u-clip"] {
     --clip-size: 1em;
     --clip-size-large: 2em;
@@ -43,4 +47,19 @@
 
 .u-clip-tl-br {
     clip-path: polygon(var(--clip-size) var(--clip-size), var(--clip-size) 0, 100% 0, 100% calc(100% - var(--clip-size-large)), calc(100% - var(--clip-size-large)) calc(100% - var(--clip-size-large)), calc(100% - var(--clip-size-large)) 100%, 0 100%, 0 var(--clip-size));
+}
+
+/* ----------------------------------------
+Dividers
+---------------------------------------- */
+
+[class*="u-divider-"] {
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--theme--border);
+}
+
+.u-divider-bottom-right {
+    border-bottom: none;
+    border-left: none;
 }
