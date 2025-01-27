@@ -1,12 +1,21 @@
 // Register the repulsion effect
 ParticleEffects.register('repulsion', (element, sketch) => {
-    // Check if device is touch-only
-    const isTouchDevice = ('ontouchstart' in window) || 
-                         (navigator.maxTouchPoints > 0) || 
-                         (navigator.msMaxTouchPoints > 0);
+    // More robust touch device detection
+    const isTouchDevice = () => {
+        // Check for touch capability
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            return true;
+        }
+        // Check for touch-only device (no mouse)
+        if (window.matchMedia('(hover: none)').matches) {
+            return true;
+        }
+        return false;
+    };
 
-    // If it's a touch device, return null to skip the effect
-    if (isTouchDevice) {
+    // If it's a touch device, return null to disable the effect
+    if (isTouchDevice()) {
+        console.log('Touch device detected - disabling repulsion effect');
         return null;
     }
 

@@ -19,8 +19,9 @@ const ParticleEffects = {
             effectTypes.forEach(type => {
                 const effectInitializer = effectRegistry.get(type);
                 if (effectInitializer) {
-                    // Store the effect's update function
+                    // Initialize the effect
                     const effect = effectInitializer(element, sketch);
+                    // Only add the effect if it's not null and has an updateParticles method
                     if (effect && effect.updateParticles) {
                         sketch.activeEffects.push(effect);
                     }
