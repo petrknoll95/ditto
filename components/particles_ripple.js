@@ -150,12 +150,11 @@ ParticleEffects.register('ripple', (element, sketch) => {
 
     // Handle touch events
     element.addEventListener('touchstart', (e) => {
-        if (element === sketch.gridElement) {
-            e.preventDefault();
+        if (element === sketch.gridElement && e.touches.length === 1) {
             const pos = getEventPosition(e);
             createRipple(pos.x, pos.y);
         }
-    }, { passive: false });
+    }, { passive: true });
 
     return {
         updateParticles

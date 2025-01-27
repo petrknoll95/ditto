@@ -22,6 +22,9 @@ ParticleEffects.register('repulsion', (element, sketch) => {
     let particles = [];
     let isInteracting = false;
     let lastPosition = null;
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let isScrolling = false;
     const interaction = createInteractionHelper(sketch, element);
 
     function initializeParticles() {
@@ -39,13 +42,10 @@ ParticleEffects.register('repulsion', (element, sketch) => {
         if (!currentParticles) return null;
 
         const { x: currentX, y: currentY, isInteracting: isMouseInteracting } = interaction.getInteractionPosition();
-        
-        // Use current interaction position from either touch or mouse
-        const shouldInteract = isInteracting || isMouseInteracting;
+        const shouldInteract = (isInteracting || isMouseInteracting) && !isScrolling;
         const interactionX = shouldInteract ? (lastPosition ? lastPosition.x : currentX) : null;
         const interactionY = shouldInteract ? (lastPosition ? lastPosition.y : currentY) : null;
 
-        // Update velocities and return displacements
         return currentParticles.map((p, i) => {
             let particle = particles[i];
             
@@ -66,12 +66,13 @@ ParticleEffects.register('repulsion', (element, sketch) => {
                 }
             }
 
-            // Always apply return force and friction
+            // Always apply return force
             const returnX = (p.origX - p.x) * config.returnSpeed;
             const returnY = (p.origY - p.y) * config.returnSpeed;
             particle.vx += returnX;
             particle.vy += returnY;
 
+            // Apply consistent friction whether interacting or returning
             particle.vx *= config.friction;
             particle.vy *= config.friction;
 
@@ -101,38 +102,69 @@ ParticleEffects.register('repulsion', (element, sketch) => {
 
     // Touch event handlers
     function handleTouchStart(e) {
-        e.preventDefault();
-        isInteracting = true;
-        const touch = e.touches[0];
-        const rect = sketch.canvas.getBoundingClientRect();
-        lastPosition = {
-            x: sketch.map(touch.clientX - rect.left, 0, rect.width, 0, sketch.width),
-            y: sketch.map(touch.clientY - rect.top, 0, rect.height, 0, sketch.height)
-        };
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            touchStartY = touch.clientY;
+            touchStartX = touch.clientX;
+            isScrolling = false;
+
+            const rect = sketch.canvas.getBoundingClientRect();
+            const touchX = sketch.map(touch.clientX - rect.left, 0, rect.width, 0, sketch.width);
+            const touchY = sketch.map(touch.clientY - rect.top, 0, rect.height, 0, sketch.height);
+            
+            lastPosition = { x: touchX, y: touchY };
+            isInteracting = true;
+        }
     }
 
     function handleTouchMove(e) {
-        e.preventDefault();
-        if (e.touches.length > 0) {
+        if (e.touches.length === 1 && isInteracting) {
             const touch = e.touches[0];
+            
+            // Calculate movement
+            const deltaY = touch.clientY - touchStartY;
+            const deltaX = touch.clientX - touchStartX;
+
+            // If vertical movement is greater than horizontal, it's likely a scroll
+            if (!isScrolling && Math.abs(deltaY) > Math.abs(deltaX)) {
+                isScrolling = true;
+                isInteracting = false;
+                lastPosition = null;
+                return;
+            }
+
+            // If we've determined this is a scroll, don't process the repulsion
+            if (isScrolling) return;
+
             const rect = sketch.canvas.getBoundingClientRect();
-            lastPosition = {
-                x: sketch.map(touch.clientX - rect.left, 0, rect.width, 0, sketch.width),
-                y: sketch.map(touch.clientY - rect.top, 0, rect.height, 0, sketch.height)
-            };
+            const touchX = sketch.map(touch.clientX - rect.left, 0, rect.width, 0, sketch.width);
+            const touchY = sketch.map(touch.clientY - rect.top, 0, rect.height, 0, sketch.height);
+            
+            lastPosition = { x: touchX, y: touchY };
+
+            // Only prevent default if we're not scrolling and there's significant horizontal movement
+            if (!isScrolling && Math.abs(deltaX) > 10) {
+                e.preventDefault();
+            }
         }
     }
 
     function handleTouchEnd(e) {
-        e.preventDefault();
         isInteracting = false;
+        isScrolling = false;
         lastPosition = null;
+        
+        // Reset all particle velocities
+        particles.forEach(particle => {
+            particle.vx = 0;
+            particle.vy = 0;
+        });
     }
 
-    // Add touch event listeners
-    element.addEventListener('touchstart', handleTouchStart, { passive: false });
+    // Add touch event listeners with passive option where possible
+    element.addEventListener('touchstart', handleTouchStart, { passive: true });
     element.addEventListener('touchmove', handleTouchMove, { passive: false });
-    element.addEventListener('touchend', handleTouchEnd, { passive: false });
+    element.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return {
         updateParticles
