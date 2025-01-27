@@ -1,5 +1,15 @@
 // Register the repulsion effect
 ParticleEffects.register('repulsion', (element, sketch) => {
+    // Check if device is touch-only
+    const isTouchDevice = ('ontouchstart' in window) || 
+                         (navigator.maxTouchPoints > 0) || 
+                         (navigator.msMaxTouchPoints > 0);
+
+    // If it's a touch device, return null to skip the effect
+    if (isTouchDevice) {
+        return null;
+    }
+
     // Configuration
     const defaultConfig = {
         radius: 150,
