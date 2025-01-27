@@ -148,11 +148,19 @@ ParticleEffects.register('ripple', (element, sketch) => {
         createRipple(pos.x, pos.y);
     });
 
-    // Handle touch events
-    element.addEventListener('touchstart', (e) => {
-        if (element === sketch.gridElement && e.touches.length === 1) {
-            const pos = getEventPosition(e);
-            createRipple(pos.x, pos.y);
+    // Handle touch events - using click event instead of touchstart
+    // This ensures better compatibility with scroll and other touch gestures
+    element.addEventListener('touchend', (e) => {
+        // Only handle single touch that hasn't moved much (indicating a tap)
+        if (e.changedTouches.length === 1) {
+            const touch = e.changedTouches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            
+            // Only create ripple if the touch ended on our element
+            if (target === element || element.contains(target)) {
+                const pos = getEventPosition(touch);
+                createRipple(pos.x, pos.y);
+            }
         }
     }, { passive: true });
 
