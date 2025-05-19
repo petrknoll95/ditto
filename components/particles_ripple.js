@@ -29,7 +29,14 @@ ParticleEffects.register('ripple', (element, sketch) => {
     // Get base opacity from grid settings
     const baseOpacity = parseFloat(element.dataset.gridOpacity) || 1;
 
+    // Calculate maximum radius once
+    const maxRadius = Math.max(sketch.width, sketch.height) * config.maxRadius;
+    
+    // Pre-compute squared thickness for faster distance checks
+    const thicknessSq = config.thickness * config.thickness;
+
     let ripples = [];
+    let hasActiveRipples = false;
     
     class Ripple {
         constructor(x, y) {
@@ -37,41 +44,54 @@ ParticleEffects.register('ripple', (element, sketch) => {
             this.y = y || sketch.height / 2;
             this.startTime = sketch.millis() / 1000;
             this.progress = 0;
+            this.currentRadius = 0;
+            this.active = true;
         }
 
         update() {
             this.progress = (sketch.millis() / 1000 - this.startTime) / config.duration;
-            return this.progress <= 1;
+            // Calculate the current radius of the wave once per update
+            this.currentRadius = maxRadius * config.easing.expansion(this.progress);
+            this.strength = config.easing.strength(this.progress);
+            
+            if (this.progress > 1) {
+                this.active = false;
+            }
+            
+            return this.active;
         }
 
         getDisplacement(px, py) {
             const dx = px - this.x;
             const dy = py - this.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance === 0) return { x: 0, y: 0, opacity: baseOpacity, size: 1 };
-
-            // Calculate the current radius of the wave
-            const maxRadius = Math.max(sketch.width, sketch.height) * config.maxRadius;
-            const currentRadius = maxRadius * config.easing.expansion(this.progress);
+            const distanceSq = dx * dx + dy * dy;
             
-            const distanceFromWave = Math.abs(distance - currentRadius) / maxRadius;
+            if (distanceSq === 0) return { x: 0, y: 0, opacity: baseOpacity, size: 1 };
+
+            // Fast path: Skip sqrt calculation if clearly outside effect range
+            const radiusDiff = Math.sqrt(distanceSq) - this.currentRadius;
+            const distanceFromWave = Math.abs(radiusDiff) / maxRadius;
             
             if (distanceFromWave > config.thickness) {
                 return { x: 0, y: 0, opacity: baseOpacity, size: 1 };
             }
             
             const waveStrength = 1 - (distanceFromWave / config.thickness);
-            const strength = config.easing.strength(this.progress);
-            const magnitude = waveStrength * strength * config.amplitude;
+            const magnitude = waveStrength * this.strength * config.amplitude;
             
-            // Calculate effect values based on wave strength
-            const opacityBoost = shouldAffectOpacity 
-                ? Math.min(1, baseOpacity + (waveStrength * strength * (1 - baseOpacity)))
-                : baseOpacity;
+            // Only compute values if needed
+            let opacityBoost = baseOpacity;
+            if (shouldAffectOpacity) {
+                opacityBoost = Math.min(1, baseOpacity + (waveStrength * this.strength * (1 - baseOpacity)));
+            }
             
-            const sizeBoost = shouldAffectSize
-                ? 1 + (waveStrength * strength) // More noticeable size increase
-                : 1;
+            let sizeBoost = 1;
+            if (shouldAffectSize) {
+                sizeBoost = 1 + (waveStrength * this.strength);
+            }
+            
+            // Need sqrt for direction normalization
+            const distance = Math.sqrt(distanceSq);
             
             return {
                 x: (dx / distance) * magnitude,
@@ -84,6 +104,12 @@ ParticleEffects.register('ripple', (element, sketch) => {
 
     function createRipple(x, y) {
         ripples.push(new Ripple(x, y));
+        hasActiveRipples = true;
+        
+        // Resume animation in core
+        if (typeof sketch.loop === 'function') {
+            sketch.loop();
+        }
     }
 
     function getEventPosition(e) {
@@ -109,34 +135,70 @@ ParticleEffects.register('ripple', (element, sketch) => {
         });
     }
 
-    function updateParticles(particles) {
+    // Pre-allocate displacement array
+    let displacementResults = null;
+
+    function updateParticles(particles, out = null) {
         if (!particles || ripples.length === 0) {
+            hasActiveRipples = false;
             return null;
         }
 
-        ripples = ripples.filter(ripple => ripple.update());
+        // Update ripples and check if we have any active ones
+        const hadActiveRipples = hasActiveRipples;
+        hasActiveRipples = false;
+        
+        ripples = ripples.filter(ripple => {
+            const isActive = ripple.update();
+            if (isActive) hasActiveRipples = true;
+            return isActive;
+        });
+        
+        // If we don't have active ripples anymore, allow animation to pause
+        if (hadActiveRipples && !hasActiveRipples && typeof sketch.noLoop === 'function') {
+            // Allow a few more frames before stopping
+            setTimeout(() => {
+                if (!hasActiveRipples) sketch.noLoop();
+            }, 100);
+        }
 
-        return particles.map(p => {
-            let totalDx = 0;
-            let totalDy = 0;
-            let maxOpacityBoost = baseOpacity;
-            let maxSizeBoost = 1;
+        // If no ripples left, return null
+        if (ripples.length === 0) {
+            return null;
+        }
 
+        // Create or reuse the displacement results array
+        if (!displacementResults || displacementResults.length !== particles.length) {
+            displacementResults = Array(particles.length).fill().map(() => ({ 
+                dx: 0, dy: 0, opacity: baseOpacity, size: 1 
+            }));
+        }
+        
+        // Reuse output array if provided
+        const results = out || displacementResults;
+
+        // Reset all displacements
+        for (let i = 0; i < particles.length; i++) {
+            results[i].dx = 0;
+            results[i].dy = 0;
+            results[i].opacity = baseOpacity;
+            results[i].size = 1;
+        }
+
+        // Apply all ripples
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            
             ripples.forEach(ripple => {
                 const displacement = ripple.getDisplacement(p.origX, p.origY);
-                totalDx += displacement.x;
-                totalDy += displacement.y;
-                maxOpacityBoost = Math.max(maxOpacityBoost, displacement.opacity);
-                maxSizeBoost = Math.max(maxSizeBoost, displacement.size);
+                results[i].dx += displacement.x;
+                results[i].dy += displacement.y;
+                results[i].opacity = Math.max(results[i].opacity, displacement.opacity);
+                results[i].size = Math.max(results[i].size, displacement.size);
             });
+        }
 
-            return { 
-                dx: totalDx, 
-                dy: totalDy,
-                opacity: maxOpacityBoost,
-                size: maxSizeBoost
-            };
-        });
+        return results;
     }
 
     initializeParticles();

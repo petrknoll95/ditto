@@ -23,6 +23,9 @@ ParticleEffects.register('connect', (element, sketch) => {
     let lastFrameTime = 0;             // Last frame timestamp
     let cycleStartTime = 0;            // When the current cycle started
     let groupStartTimes = new Map();   // Stores the start time for each group
+    let displacementResults = null;    // Pre-allocated array for results
+    let hasActiveAnimations = false;   // Tracks if there are active animations
+    let needsNewCycle = false;         // Flag to initiate a new cycle
 
     function getCurrentTime() {
         return sketch.millis() / 1000;  // Convert to seconds
@@ -118,27 +121,66 @@ ParticleEffects.register('connect', (element, sketch) => {
                 });
             }
         }
+        
+        // Pre-allocate displacement results if needed
+        if (!displacementResults || displacementResults.length !== particles.length) {
+            displacementResults = Array(particles.length).fill().map(() => ({
+                dx: 0, dy: 0, opacity: config.baseOpacity
+            }));
+        }
+        
+        hasActiveAnimations = true;
+        
+        // Make sure animation is running
+        if (typeof sketch.loop === 'function') {
+            sketch.loop();
+        }
     }
 
     function updateAnimations(currentTime) {
         // Update animation progress for each particle
+        let anyActiveAnimations = false;
+        
         particleStates.forEach((state, index) => {
             if (currentTime < state.startTime) {
                 state.progress = 0;
+                anyActiveAnimations = true;
                 return;
             }
 
             const elapsed = currentTime - state.startTime;
             state.progress = Math.min(elapsed / config.animation.duration, 1);
+            
+            // If not completed, mark as active
+            if (state.progress < 1) {
+                anyActiveAnimations = true;
+            }
         });
+        
+        hasActiveAnimations = anyActiveAnimations;
 
         // Check if all animations are complete
-        const allComplete = Array.from(particleStates.values()).every(state => state.progress >= 1);
-        
-        if (allComplete && (currentTime - cycleStartTime) > config.animation.cycleDelay) {
+        if (!anyActiveAnimations && (currentTime - cycleStartTime) > config.animation.cycleDelay) {
             // Start new cycle
-            cycleStartTime = currentTime;
-            calculateGridGroups();
+            needsNewCycle = true;
+        }
+    }
+
+    // Function to resume/pause animation
+    function checkAndControlAnimation() {
+        if (hasActiveAnimations || needsNewCycle) {
+            if (needsNewCycle) {
+                cycleStartTime = getCurrentTime();
+                calculateGridGroups();
+                needsNewCycle = false;
+            }
+        } else if (typeof sketch.noLoop === 'function') {
+            // Allow animation to pause if no active animations
+            setTimeout(() => {
+                if (!hasActiveAnimations && !needsNewCycle) {
+                    sketch.noLoop();
+                }
+            }, 100);
         }
     }
 
@@ -153,21 +195,34 @@ ParticleEffects.register('connect', (element, sketch) => {
     });
 
     return {
-        updateParticles: (particles) => {
+        updateParticles: (particles, out = null) => {
             if (!particles || particles.length === 0) {
                 return null;
             }
 
             // Update animations
             updateAnimations(getCurrentTime());
+            
+            // Check animation state and control loop
+            checkAndControlAnimation();
+            
+            // Reuse output array if provided
+            const results = out || displacementResults;
+            
+            // Reset all values
+            for (let i = 0; i < results.length; i++) {
+                results[i].dx = 0;
+                results[i].dy = 0;
+                results[i].opacity = config.baseOpacity;
+            }
 
             // Return opacity values for each particle
-            return particles.map((particle, index) => {
-                if (!connectedIndices.has(index)) {
-                    return { dx: 0, dy: 0, opacity: config.baseOpacity };
+            for (let i = 0; i < particles.length; i++) {
+                if (!connectedIndices.has(i)) {
+                    continue; // Already reset to base opacity
                 }
 
-                const state = particleStates.get(index);
+                const state = particleStates.get(i);
                 const progress = state ? state.progress : 0;
                 
                 // Smooth easing function for fade in/out
@@ -184,13 +239,10 @@ ParticleEffects.register('connect', (element, sketch) => {
                 }
                 
                 const opacity = config.baseOpacity + (config.highlightOpacity - config.baseOpacity) * easeInOutCubic(fadeProgress);
+                results[i].opacity = opacity;
+            }
 
-                return {
-                    dx: 0,
-                    dy: 0,
-                    opacity
-                };
-            });
+            return results;
         }
     };
 });
