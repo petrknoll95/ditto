@@ -90,6 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Store pre-calculated displacements for reuse
             let effectDisplacements = [];
             
+            // Cache computed style and color to avoid repeated DOM access
+            let cachedDotColor = null;
+            let cachedColorComponents = null;
+            
+            // Cache base opacity to avoid repeated parsing
+            let cachedBaseOpacity = null;
+            
             // Public API for effects to interact with the particle system
             sketch.particleSystem = {
                 getParticles: () => particles,
@@ -98,38 +105,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 getDensity: () => density,
                 getPadding: () => padding,
-                getParticleSize: () => particleSize
+                getParticleSize: () => particleSize,
+                // Add method to invalidate caches when needed
+                invalidateCaches: () => {
+                    cachedDotColor = null;
+                    cachedColorComponents = null;
+                    cachedBaseOpacity = null;
+                }
             };
             
             // Breakpoints for responsive particle sizing
             const BREAKPOINTS = {
-                sm: 480,
-                md: 768,
-                lg: 1024
+                xs: 400,   // Extra small - 0.8x
+                sm: 600,   // Small - 0.85x
+                md: 900,   // Medium - 0.9x
+                lg: 1200,  // Large - 0.95x
+                xl: 1600   // Extra large - 1x
             };
             
             function calculateResponsiveScale() {
                 const viewportWidth = window.innerWidth;
                 
-                if (viewportWidth <= BREAKPOINTS.sm) {
-                    return { size: 1.25, density: 0.75 };
+                if (viewportWidth <= BREAKPOINTS.xs) {
+                    return { size: 0.8, density: 1.2 };  // Smaller particles, slightly higher density
+                } else if (viewportWidth <= BREAKPOINTS.sm) {
+                    return { size: 0.85, density: 1.15 };
                 } else if (viewportWidth <= BREAKPOINTS.md) {
-                    return { size: 1.125, density: 0.875 };
+                    return { size: 0.9, density: 1.1 };
                 } else if (viewportWidth <= BREAKPOINTS.lg) {
-                    return { size: 1, density: 1 };
-                }  else {
-                    return { size: 1, density: 1 };
+                    return { size: 0.95, density: 1.05 };
+                } else {
+                    return { size: 1, density: 1 };  // Full size at 1600px and above
                 }
             }
             
             function calculateParticleSize() {
-                const baseSize = parseInt(element.dataset.gridSize) || 1;
+                const baseSize = parseFloat(element.dataset.gridSize) || 1;
                 const { size: scale } = calculateResponsiveScale();
                 return 1 * baseSize * scale;
             }
             
             function calculateGridSize() {
-                const baseDensity = parseInt(element.dataset.gridDensity) || 2;
+                const baseDensity = parseFloat(element.dataset.gridDensity) || 2;
                 const { density: scale } = calculateResponsiveScale();
                 // Make density differences more subtle by using a non-linear scale
                 const normalizedDensity = 1 + ((baseDensity - 1) * 0.3);
@@ -163,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Set pixel density optimization
                 sketch.pixelDensity(window.devicePixelRatio > 1 ? 1.5 : 1);
                 
-                density = parseInt(element.dataset.gridDensity) || 2;
+                density = parseFloat(element.dataset.gridDensity) || 2;
                 padding = parseInt(element.dataset.gridPadding) || 0;
                 
                 // Pre-calculate values
@@ -194,64 +211,86 @@ document.addEventListener('DOMContentLoaded', () => {
             
             sketch.draw = () => {
                 sketch.clear();
-                const computedStyle = getComputedStyle(element);
-                const dotColor = computedStyle.getPropertyValue('--theme--dot-color').trim();
                 
-                if (particles && particles.length > 0) {
-                    // Reset particles to original positions and properties
-                    particles.forEach(particle => {
-                        particle.x = particle.origX;
-                        particle.y = particle.origY;
-                        particle.opacity = undefined; // Reset opacity
-                        particle.size = undefined;    // Reset size
-                    });
+                if (!particles || particles.length === 0) return;
+                
+                // Cache color lookup - only update if changed
+                if (!cachedDotColor) {
+                    const computedStyle = getComputedStyle(element);
+                    const dotColor = computedStyle.getPropertyValue('--theme--dot-color').trim();
+                    if (dotColor !== cachedDotColor) {
+                        cachedDotColor = dotColor;
+                        const col = sketch.color(dotColor);
+                        cachedColorComponents = {
+                            r: sketch.red(col),
+                            g: sketch.green(col),
+                            b: sketch.blue(col)
+                        };
+                    }
+                }
+                
+                // Cache base opacity
+                if (cachedBaseOpacity === null) {
+                    cachedBaseOpacity = parseFloat(element.dataset.gridOpacity) || 1;
+                }
+                
+                const baseOpacity = cachedBaseOpacity;
+                
+                // Reset particles to original positions and properties
+                for (let i = 0; i < particles.length; i++) {
+                    const particle = particles[i];
+                    particle.x = particle.origX;
+                    particle.y = particle.origY;
+                    particle.opacity = baseOpacity;
+                    particle.size = 1;
+                }
 
-                    // Only apply effects if there are active effects
-                    if (sketch.activeEffects && sketch.activeEffects.length > 0) {
-                        // Get displacements from all active effects
-                        let hasDisplacements = false;
-                        
-                        sketch.activeEffects.forEach((effect, effectIndex) => {
-                            const displacements = effect.updateParticles(particles, effectDisplacements[effectIndex]);
-                            if (displacements) {
-                                effectDisplacements[effectIndex] = displacements;
-                                hasDisplacements = true;
-                            }
-                        });
-
-                        // Apply combined displacements
-                        if (hasDisplacements) {
-                            particles.forEach((particle, i) => {
-                                let totalDx = 0;
-                                let totalDy = 0;
-                                let maxOpacity = parseFloat(element.dataset.gridOpacity) || 1;
-                                let maxSize = 1;
-
-                                effectDisplacements.forEach(effectDisplacements => {
-                                    if (effectDisplacements && effectDisplacements[i]) {
-                                        totalDx += effectDisplacements[i].dx;
-                                        totalDy += effectDisplacements[i].dy;
-                                        // Use the highest opacity value from all effects
-                                        if (effectDisplacements[i].opacity !== undefined) {
-                                            maxOpacity = Math.max(maxOpacity, effectDisplacements[i].opacity);
-                                        }
-                                        // Use the highest size value from all effects
-                                        if (effectDisplacements[i].size !== undefined) {
-                                            maxSize = Math.max(maxSize, effectDisplacements[i].size);
-                                        }
-                                    }
-                                });
-
-                                particle.x += totalDx;
-                                particle.y += totalDy;
-                                particle.opacity = maxOpacity;
-                                particle.size = maxSize;
-                            });
+                // Only apply effects if there are active effects
+                if (sketch.activeEffects && sketch.activeEffects.length > 0) {
+                    // Get displacements from all active effects
+                    let hasDisplacements = false;
+                    
+                    for (let effectIndex = 0; effectIndex < sketch.activeEffects.length; effectIndex++) {
+                        const effect = sketch.activeEffects[effectIndex];
+                        const displacements = effect.updateParticles(particles, effectDisplacements[effectIndex]);
+                        if (displacements) {
+                            effectDisplacements[effectIndex] = displacements;
+                            hasDisplacements = true;
                         }
                     }
 
-                    drawParticles(dotColor);
+                    // Apply combined displacements
+                    if (hasDisplacements) {
+                        for (let i = 0; i < particles.length; i++) {
+                            const particle = particles[i];
+                            let totalDx = 0;
+                            let totalDy = 0;
+                            let effectOpacity = 1;
+                            let maxSize = 1;
+
+                            for (let j = 0; j < effectDisplacements.length; j++) {
+                                const displacement = effectDisplacements[j];
+                                if (displacement && displacement[i]) {
+                                    totalDx += displacement[i].dx;
+                                    totalDy += displacement[i].dy;
+                                    if (displacement[i].opacity !== undefined) {
+                                        effectOpacity = Math.max(effectOpacity, displacement[i].opacity);
+                                    }
+                                    if (displacement[i].size !== undefined) {
+                                        maxSize = Math.max(maxSize, displacement[i].size);
+                                    }
+                                }
+                            }
+
+                            particle.x += totalDx;
+                            particle.y += totalDy;
+                            particle.opacity = baseOpacity * effectOpacity;
+                            particle.size = maxSize;
+                        }
+                    }
                 }
+
+                drawParticles();
             };
             
             function initializeParticles() {
@@ -297,39 +336,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 resumeAnimation();
             }
             
-            function drawParticles(color) {
-                // Parse the color to get its components
-                const col = sketch.color(color);
+            function drawParticles() {
                 const baseParticleSize = particleSize;
                 
-                // Get base opacity
-                const baseOpacity = parseFloat(element.dataset.gridOpacity) || 1;
+                // Disable stroke for clean shapes
+                sketch.noStroke();
                 
-                particles.forEach(particle => {
-                    // Get the current opacity and size for this particle
-                    const currentOpacity = particle.opacity !== undefined ? particle.opacity : baseOpacity;
-                    const currentSize = particle.size !== undefined ? baseParticleSize * particle.size : baseParticleSize;
+                // Batch similar opacity draws together
+                let currentBatchOpacity = -1;
+                
+                for (let i = 0; i < particles.length; i++) {
+                    const particle = particles[i];
+                    const currentOpacity = particle.opacity;
+                    const currentSize = particle.size * baseParticleSize;
                     
-                    // Only set fill if opacity changed (optimization)
-                    if (lastOpacity !== currentOpacity) {
-                        sketch.fill(sketch.red(col), sketch.green(col), sketch.blue(col), 255 * currentOpacity);
-                        lastOpacity = currentOpacity;
+                    // Only set fill if opacity changed
+                    if (currentBatchOpacity !== currentOpacity) {
+                        currentBatchOpacity = currentOpacity;
+                        sketch.fill(
+                            cachedColorComponents.r,
+                            cachedColorComponents.g,
+                            cachedColorComponents.b,
+                            255 * currentOpacity
+                        );
                     }
                     
-                    // Draw diamond using quad() instead of beginShape/vertex/endShape
+                    // Draw diamond using quad
                     sketch.quad(
                         particle.x, particle.y - currentSize,
                         particle.x + currentSize, particle.y,
                         particle.x, particle.y + currentSize,
                         particle.x - currentSize, particle.y
                     );
-                });
+                }
             }
             
             sketch.windowResized = () => {
                 sketch.resizeCanvas(element.offsetWidth, element.offsetHeight);
                 // Re-calculate particle size
                 particleSize = calculateParticleSize();
+                // Invalidate caches
+                sketch.particleSystem.invalidateCaches();
                 initializeParticles();
                 resumeAnimation();
             };
@@ -383,3 +430,5 @@ function createInteractionHelper(sketch, element) {
         }
     };
 }
+
+// Secret message: "I love you and I've read particles_core.js"

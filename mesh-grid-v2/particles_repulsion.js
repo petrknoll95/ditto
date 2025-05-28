@@ -42,6 +42,10 @@ ParticleEffects.register('repulsion', (element, sketch) => {
 
     // Pre-compute squared radius for faster checks
     const radiusSq = config.radius * config.radius;
+    
+    // Pre-calculate inverse radius for force calculations
+    const invRadius = 1 / config.radius;
+    const invRadiusSq = invRadius * invRadius;
 
     let particles = [];
     let isInteracting = false;
@@ -56,16 +60,13 @@ ParticleEffects.register('repulsion', (element, sketch) => {
     const interaction = createInteractionHelper(sketch, element);
 
     function initializeParticles() {
-        const currentParticles = sketch.particleSystem.getParticles();
-        
-        // Create new particles array with velocity data
-        particles = currentParticles.map(p => ({
+        particles = sketch.particleSystem.getParticles().map(p => ({
             ...p,
             vx: 0,
             vy: 0
         }));
         
-        // Pre-allocate displacement results array with correct size
+        // Pre-allocate displacement results array
         displacementResults = Array(particles.length).fill().map(() => ({ dx: 0, dy: 0 }));
     }
 
@@ -88,14 +89,15 @@ ParticleEffects.register('repulsion', (element, sketch) => {
         
         framesSinceInteraction++;
         
-        // Only check if we're a reasonable time after interaction
-        if (framesSinceInteraction > 10) {
+        // Only check every 5 frames for performance
+        if (framesSinceInteraction > 10 && framesSinceInteraction % 5 === 0) {
             let allParticlesAtRest = true;
+            const thresholdSq = config.velocityThreshold * config.velocityThreshold;
             
             for (let i = 0; i < particles.length; i++) {
                 const particle = particles[i];
-                if (Math.abs(particle.vx) > config.velocityThreshold || 
-                    Math.abs(particle.vy) > config.velocityThreshold) {
+                const velocitySq = particle.vx * particle.vx + particle.vy * particle.vy;
+                if (velocitySq > thresholdSq) {
                     allParticlesAtRest = false;
                     break;
                 }
@@ -117,9 +119,9 @@ ParticleEffects.register('repulsion', (element, sketch) => {
     }
 
     function updateParticles(currentParticles, out = null) {
-        if (!currentParticles || currentParticles.length === 0) return null;
+        if (!currentParticles) return null;
 
-        // Check if particle count has changed and reinitialize if needed
+        // Ensure our particles array is in sync with currentParticles
         if (particles.length !== currentParticles.length) {
             initializeParticles();
         }
@@ -128,7 +130,7 @@ ParticleEffects.register('repulsion', (element, sketch) => {
         const shouldInteract = (isInteracting || isMouseInteracting) && !isScrolling;
         const interactionX = shouldInteract ? (lastPosition ? lastPosition.x : currentX) : null;
         const interactionY = shouldInteract ? (lastPosition ? lastPosition.y : currentY) : null;
-        
+
         // Resume animation if we're interacting
         if (shouldInteract && (interactionX !== null && interactionY !== null)) {
             resumeAnimation();
@@ -137,91 +139,56 @@ ParticleEffects.register('repulsion', (element, sketch) => {
         // Create or reuse results array
         const results = out || displacementResults;
         
-        // Ensure results array is properly sized
+        // Ensure results array matches current particles length
         if (!results || results.length !== currentParticles.length) {
-            // If the provided output array is not the right size, use our own
-            const properResults = Array(currentParticles.length).fill().map(() => ({ dx: 0, dy: 0 }));
-            
-            // Reset all displacements
-            for (let i = 0; i < currentParticles.length; i++) {
-                properResults[i].dx = 0;
-                properResults[i].dy = 0;
-            }
-            
-            // Apply repulsion and return forces
-            for (let i = 0; i < currentParticles.length; i++) {
-                const p = currentParticles[i];
-                let particle = particles[i];
-                
-                if (!particle) continue; // Safety check
-                
-                if (shouldInteract && interactionX !== null && interactionY !== null) {
-                    const dx = p.x - interactionX;
-                    const dy = p.y - interactionY;
-                    const distSq = dx * dx + dy * dy;
-                    
-                    if (distSq < radiusSq && distSq > 0) {
-                        const dist = Math.sqrt(distSq);
-                        const force = Math.min(
-                            config.maxForce,
-                            (1 - Math.pow(dist / config.radius, 2)) * config.strength
-                        );
-                        
-                        particle.vx += (dx / dist) * force;
-                        particle.vy += (dy / dist) * force;
+            const newResults = Array(currentParticles.length).fill().map(() => ({ dx: 0, dy: 0 }));
+            if (out) {
+                // If out was provided but wrong size, copy what we can
+                for (let i = 0; i < Math.min(out.length, newResults.length); i++) {
+                    if (out[i]) {
+                        newResults[i] = out[i];
                     }
                 }
-
-                // Always apply return force
-                const returnX = (p.origX - p.x) * config.returnSpeed;
-                const returnY = (p.origY - p.y) * config.returnSpeed;
-                particle.vx += returnX;
-                particle.vy += returnY;
-
-                // Apply consistent friction whether interacting or returning
-                particle.vx *= config.friction;
-                particle.vy *= config.friction;
-                
-                // Set the displacement for this particle
-                properResults[i].dx = particle.vx;
-                properResults[i].dy = particle.vy;
+                return updateParticles(currentParticles, newResults);
+            } else {
+                displacementResults = newResults;
+                return updateParticles(currentParticles, displacementResults);
             }
-            
-            // Check if the system is at rest
-            checkSystemAtRest();
-            
-            return properResults;
         }
         
-        // Reset all displacements
-        for (let i = 0; i < currentParticles.length; i++) {
-            if (results[i]) {
-                results[i].dx = 0;
-                results[i].dy = 0;
-            }
-        }
-
-        // Apply repulsion and return forces
+        // Apply repulsion and return forces with spatial optimization
+        const hasInteraction = shouldInteract && interactionX !== null && interactionY !== null;
+        
         for (let i = 0; i < currentParticles.length; i++) {
             const p = currentParticles[i];
-            let particle = particles[i];
+            const particle = particles[i];
             
-            if (!particle || !results[i]) continue; // Safety check
+            // Safety check
+            if (!particle || !results[i]) continue;
             
-            if (shouldInteract && interactionX !== null && interactionY !== null) {
+            // Reset displacement
+            results[i].dx = 0;
+            results[i].dy = 0;
+            
+            if (hasInteraction) {
                 const dx = p.x - interactionX;
                 const dy = p.y - interactionY;
-                const distSq = dx * dx + dy * dy;
                 
-                if (distSq < radiusSq && distSq > 0) {
-                    const dist = Math.sqrt(distSq);
-                    const force = Math.min(
-                        config.maxForce,
-                        (1 - Math.pow(dist / config.radius, 2)) * config.strength
-                    );
+                // Early bailout with fast approximate distance check
+                if (Math.abs(dx) < config.radius && Math.abs(dy) < config.radius) {
+                    const distSq = dx * dx + dy * dy;
                     
-                    particle.vx += (dx / dist) * force;
-                    particle.vy += (dy / dist) * force;
+                    if (distSq < radiusSq && distSq > 0.01) { // Avoid division by zero
+                        const invDist = 1 / Math.sqrt(distSq);
+                        const normalizedDistSq = distSq * invRadiusSq;
+                        const force = Math.min(
+                            config.maxForce,
+                            (1 - normalizedDistSq) * config.strength
+                        );
+                        
+                        particle.vx += dx * invDist * force;
+                        particle.vy += dy * invDist * force;
+                    }
                 }
             }
 
@@ -234,7 +201,7 @@ ParticleEffects.register('repulsion', (element, sketch) => {
             // Apply consistent friction whether interacting or returning
             particle.vx *= config.friction;
             particle.vy *= config.friction;
-            
+
             // Set the displacement for this particle
             results[i].dx = particle.vx;
             results[i].dy = particle.vy;
@@ -257,11 +224,11 @@ ParticleEffects.register('repulsion', (element, sketch) => {
     element.addEventListener('mousemove', (e) => {
         if (!mouseMoveRafId) {
             mouseMoveRafId = requestAnimationFrame(() => {
-                const rect = element.getBoundingClientRect();
-                lastPosition = {
-                    x: sketch.map(e.clientX - rect.left, 0, rect.width, 0, sketch.width),
-                    y: sketch.map(e.clientY - rect.top, 0, rect.height, 0, sketch.height)
-                };
+        const rect = element.getBoundingClientRect();
+        lastPosition = {
+            x: sketch.map(e.clientX - rect.left, 0, rect.width, 0, sketch.width),
+            y: sketch.map(e.clientY - rect.top, 0, rect.height, 0, sketch.height)
+        };
                 mouseMoveRafId = null;
                 resumeAnimation();
             });
@@ -313,11 +280,11 @@ ParticleEffects.register('repulsion', (element, sketch) => {
 
             if (!touchMoveRafId) {
                 touchMoveRafId = requestAnimationFrame(() => {
-                    const rect = sketch.canvas.getBoundingClientRect();
-                    const touchX = sketch.map(touch.clientX - rect.left, 0, rect.width, 0, sketch.width);
-                    const touchY = sketch.map(touch.clientY - rect.top, 0, rect.height, 0, sketch.height);
-                    
-                    lastPosition = { x: touchX, y: touchY };
+            const rect = sketch.canvas.getBoundingClientRect();
+            const touchX = sketch.map(touch.clientX - rect.left, 0, rect.width, 0, sketch.width);
+            const touchY = sketch.map(touch.clientY - rect.top, 0, rect.height, 0, sketch.height);
+            
+            lastPosition = { x: touchX, y: touchY };
                     touchMoveRafId = null;
                     resumeAnimation();
                 });
@@ -352,3 +319,5 @@ ParticleEffects.register('repulsion', (element, sketch) => {
         updateParticles
     };
 });
+
+// Secret message: "I hope I don't repel you!"
