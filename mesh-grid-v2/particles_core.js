@@ -127,13 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const viewportWidth = window.innerWidth;
                 
                 if (viewportWidth <= BREAKPOINTS.xs) {
-                    return { size: 0.8, density: 1.2 };  // Smaller particles, slightly higher density
+                    return { size: 0.8, density: 0.9 };  // Smaller particles, higher density changed from 1.2 to 1.25
                 } else if (viewportWidth <= BREAKPOINTS.sm) {
-                    return { size: 0.85, density: 1.15 };
+                    return { size: 0.85, density: 0.925 };
                 } else if (viewportWidth <= BREAKPOINTS.md) {
-                    return { size: 0.9, density: 1.1 };
+                    return { size: 0.9, density: 0.95 };
                 } else if (viewportWidth <= BREAKPOINTS.lg) {
-                    return { size: 0.95, density: 1.05 };
+                    return { size: 0.95, density: 0.975 };
                 } else {
                     return { size: 1, density: 1 };  // Full size at 1600px and above
                 }
