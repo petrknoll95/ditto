@@ -56,8 +56,13 @@ ParticleEffects.register('repulsion', (element, sketch) => {
     let framesSinceInteraction = 0;
     let framesAtRest = 0;
     let displacementResults = null;
-    let isAnimating = true;
     const interaction = createInteractionHelper(sketch, element);
+
+    // Animation requester ID for centralized animation management
+    const animationRequesterId = 'repulsion-' + sketch.instanceIndex;
+    
+    // Get reference to animation manager
+    const animationManager = sketch.particleSystem.animationManager;
 
     function initializeParticles() {
         particles = sketch.particleSystem.getParticles().map(p => ({
@@ -75,10 +80,7 @@ ParticleEffects.register('repulsion', (element, sketch) => {
 
     // Function to resume animation
     function resumeAnimation() {
-        if (!isAnimating && typeof sketch.loop === 'function') {
-            isAnimating = true;
-            sketch.loop();
-        }
+        animationManager.request(animationRequesterId);
         framesSinceInteraction = 0;
         framesAtRest = 0;
     }
@@ -105,9 +107,8 @@ ParticleEffects.register('repulsion', (element, sketch) => {
             
             if (allParticlesAtRest) {
                 framesAtRest++;
-                if (framesAtRest > 5 && typeof sketch.noLoop === 'function') {
-                    isAnimating = false;
-                    sketch.noLoop();
+                if (framesAtRest > 5) {
+                    animationManager.release(animationRequesterId);
                     return true;
                 }
             } else {

@@ -82,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let density;
             let padding;
             let particleSize;
-            let isAnimating = true;
             let visibilityDetector;
             let lastFillColor = null;
             let lastOpacity = -1;
@@ -96,6 +95,48 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Cache base opacity to avoid repeated parsing
             let cachedBaseOpacity = null;
+            
+            // Centralized animation state management
+            let animationRequesters = new Set(); // Track which systems need animation
+            let animationCheckInterval = null;
+            let isCurrentlyAnimating = true;
+            
+            // Animation state manager
+            const animationManager = {
+                request: function(requesterId) {
+                    animationRequesters.add(requesterId);
+                    if (!isCurrentlyAnimating) {
+                        isCurrentlyAnimating = true;
+                        sketch.loop();
+                    }
+                },
+                
+                release: function(requesterId) {
+                    animationRequesters.delete(requesterId);
+                    // Use a small delay to prevent rapid start/stop cycling
+                    if (animationRequesters.size === 0) {
+                        clearTimeout(animationCheckInterval);
+                        animationCheckInterval = setTimeout(() => {
+                            if (animationRequesters.size === 0 && isCurrentlyAnimating) {
+                                isCurrentlyAnimating = false;
+                                sketch.noLoop();
+                            }
+                        }, 150); // 150ms delay to prevent flicker
+                    }
+                },
+                
+                forceResume: function() {
+                    clearTimeout(animationCheckInterval);
+                    if (!isCurrentlyAnimating) {
+                        isCurrentlyAnimating = true;
+                        sketch.loop();
+                    }
+                },
+                
+                isAnimating: function() {
+                    return isCurrentlyAnimating;
+                }
+            };
             
             // Public API for effects to interact with the particle system
             sketch.particleSystem = {
@@ -111,7 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     cachedDotColor = null;
                     cachedColorComponents = null;
                     cachedBaseOpacity = null;
-                }
+                },
+                // Expose animation manager to effects
+                animationManager: animationManager
             };
             
             // Breakpoints for responsive particle sizing
@@ -155,16 +198,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Function to resume animation
             function resumeAnimation() {
-                if (!isAnimating) {
-                    isAnimating = true;
-                    sketch.loop();
-                }
+                animationManager.forceResume();
             }
             
             // Function to pause animation
             function pauseAnimation() {
-                if (isAnimating) {
-                    isAnimating = false;
+                // Clear all animation requesters to allow pause
+                animationRequesters.clear();
+                clearTimeout(animationCheckInterval);
+                if (isCurrentlyAnimating) {
+                    isCurrentlyAnimating = false;
                     sketch.noLoop();
                 }
             }

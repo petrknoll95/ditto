@@ -41,6 +41,12 @@ ParticleEffects.register('ripple', (element, sketch) => {
     // Cache for current time to avoid repeated calls
     let currentTimeCache = 0;
     
+    // Animation requester ID for centralized animation management
+    const animationRequesterId = 'ripple-' + sketch.instanceIndex;
+    
+    // Get reference to animation manager
+    const animationManager = sketch.particleSystem.animationManager;
+    
     class Ripple {
         constructor(x, y) {
             this.x = x || sketch.width / 2;
@@ -118,10 +124,8 @@ ParticleEffects.register('ripple', (element, sketch) => {
         ripples.push(new Ripple(x, y));
         hasActiveRipples = true;
         
-        // Resume animation in core
-        if (typeof sketch.loop === 'function') {
-            sketch.loop();
-        }
+        // Request animation from centralized manager
+        animationManager.request(animationRequesterId);
     }
 
     function getEventPosition(e) {
@@ -176,12 +180,9 @@ ParticleEffects.register('ripple', (element, sketch) => {
         }
         ripples.length = activeRippleCount;
         
-        // If we don't have active ripples anymore, allow animation to pause
-        if (hadActiveRipples && !hasActiveRipples && typeof sketch.noLoop === 'function') {
-            // Allow a few more frames before stopping
-            setTimeout(() => {
-                if (!hasActiveRipples) sketch.noLoop();
-            }, 100);
+        // If we don't have active ripples anymore, release animation request
+        if (hadActiveRipples && !hasActiveRipples) {
+            animationManager.release(animationRequesterId);
         }
 
         // If no ripples left, return null
